@@ -146,16 +146,16 @@ def write_script(cfg, story: dict, fmt: str) -> dict:
     seconds = cfg["formats"]["target_seconds"]
     guide = FORMAT_GUIDE[fmt].format(a=ch["a"]["name"], b=ch["b"]["name"])
     items = "\n\n".join(f"[{it['source']}] {it['title']}\n{it['summary'][:400]}" for it in story["items"])
-    script = ask_json(
-        cfg, SYSTEM.format(channel=cfg["channel"]["name"]),
-        PROMPT.format(headline=story["headline"], category=story.get("category", ""),
-                      grave="yes" if story.get("grave") else "no", seconds=seconds,
-                      words=int(seconds * 2.6), guide=guide, items=items,
-                      schema=SEGMENT_SCHEMA.get(fmt, SEGMENT_SCHEMA["default"])),
-        max_tokens=3500,
-    )
-    segs = [s for s in script.get("segments", []) if str(s.get("text", "")).strip()]
-    if len(segs) < 3:
+    prompt = PROMPT.format(headline=story["headline"], category=story.get("category", ""),
+                           grave="yes" if story.get("grave") else "no", seconds=seconds,
+                           words=int(seconds * 2.6), guide=guide, items=items,
+                           schema=SEGMENT_SCHEMA.get(fmt, SEGMENT_SCHEMA["default"]))
+    for attempt in range(3):  # free models sometimes return a truncated script: just ask again
+        script = ask_json(cfg, SYSTEM.format(channel=cfg["channel"]["name"]), prompt, max_tokens=5000)
+        segs = [s for s in script.get("segments", []) if str(s.get("text", "")).strip()]
+        if len(segs) >= 4:
+            break
+    else:
         raise ValueError("script too short")
     for s in segs:
         if fmt in ("characters", "mixed") and s.get("speaker") not in ("a", "b"):

@@ -35,6 +35,9 @@ CREATE INDEX IF NOT EXISTS idx_stories_created ON stories(created);
 """
 
 
+MAX_ATTEMPTS = 3  # a story that fails is retried on the next runs, up to this many times
+
+
 class DB:
     def __init__(self, path=None):
         self.conn = sqlite3.connect(path or DATA / "newsbot.sqlite")
@@ -87,17 +90,35 @@ class DB:
     def covered_item_ids(self, hours: float) -> set[str]:
         since = time.time() - hours * 3600
         ids = set()
-        for r in self.conn.execute("SELECT meta FROM stories WHERE created>=?", (since,)):
+        for r in self.conn.execute("SELECT status, meta FROM stories WHERE created>=?", (since,)):
             try:
-                ids.update(json.loads(r["meta"] or "{}").get("item_ids", []))
+                meta = json.loads(r["meta"] or "{}")
+                if r["status"] == "failed" and meta.get("attempts", 1) < MAX_ATTEMPTS:
+                    continue  # failed story that may still be retried
+                ids.update(meta.get("item_ids", []))
             except json.JSONDecodeError:
                 pass
         return ids
 
     def story_exists(self, story_id: str, hours: float) -> bool:
+        """True if the story was already done (or failed too many times) — i.e. don't try it again."""
         since = time.time() - hours * 3600
-        r = self.conn.execute("SELECT 1 FROM stories WHERE id=? AND created>=?", (story_id, since)).fetchone()
-        return r is not None
+        r = self.conn.execute("SELECT status, meta FROM stories WHERE id=? AND created>=?",
+                              (story_id, since)).fetchone()
+        if r is None:
+            return False
+        if r["status"] != "failed":
+            return True
+        return self.attempts(story_id) >= MAX_ATTEMPTS
+
+    def attempts(self, story_id: str) -> int:
+        r = self.conn.execute("SELECT meta FROM stories WHERE id=?", (story_id,)).fetchone()
+        if r is None:
+            return 0
+        try:
+            return int(json.loads(r["meta"] or "{}").get("attempts", 1))
+        except (ValueError, json.JSONDecodeError):
+            return 1
 
     def stories_today(self, status: str | None = None) -> list[dict]:
         start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).timestamp()

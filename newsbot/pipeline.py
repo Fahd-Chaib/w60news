@@ -107,15 +107,17 @@ def run(cfg):
         if not stories:
             log.info("Rien d'assez croustillant pour l'instant.")
             return
-        made = 0
+        made = tries = 0
         for story in stories:
-            if made >= room:
+            if made >= room or tries >= room + 2:
                 break
             if db.story_exists(story["id"], sel["dedup_hours"]):
                 continue
+            tries += 1
             fmt = _pick_format(cfg, story, done_today + made)
             meta = {k: story.get(k) for k in ("category", "grave", "sources", "score")}
             meta["item_ids"] = [it["id"] for it in story["items"]]
+            meta["attempts"] = db.attempts(story["id"]) + 1
             try:
                 folder, script, video = produce(cfg, story, fmt)
                 meta["script"] = {k: v for k, v in script.items() if k != "source_urls"}
@@ -128,7 +130,7 @@ def run(cfg):
                 log.info("✔ %s → %s", story["headline"], res)
                 made += 1
             except Exception as exc:
-                log.exception("Sujet abandonné (%s) : %s", story.get("headline"), exc)
+                log.exception("Story failed (attempt %d) — %s: %s", meta["attempts"], story.get("headline"), exc)
                 db.add_story(story["id"], story["headline"], story["topic_key"], story.get("score", 0),
                              fmt, "", {**meta, "error": str(exc)[:300]})
                 db.set_story_status(story["id"], "failed")

@@ -28,6 +28,35 @@ def _voice_for(cfg, speaker: str) -> str:
     return cfg["narrator_voice"]
 
 
+_SPEECH_FIX = str.maketrans({"\u2011": "-", "\u2010": "-", "\u2012": "-", "\u2013": ", ", "\u2014": ", ",
+                             "\u00a0": " ", "\u202f": " ", "\u2018": "'", "\u2019": "'",
+                             "\u201c": '"', "\u201d": '"', "\u2026": "...", "\u2032": "'"})
+
+
+def _speakable(text: str) -> str:
+    """Normalises odd unicode that makes the free voice service return no audio."""
+    import unicodedata
+    text = unicodedata.normalize("NFKC", text).translate(_SPEECH_FIX)
+    text = "".join(ch for ch in text if unicodedata.category(ch)[0] in "LNPZS" or ch in "\n")
+    return " ".join(text.split()) or "."
+
+
+def _edge_with_retry(text, voice, rate, mp3, tries=4):
+    import time
+    last = None
+    for k in range(tries):
+        try:
+            words = asyncio.run(_edge_segment(_speakable(text), voice, rate, mp3))
+            if mp3.exists() and mp3.stat().st_size > 1000:
+                return words
+            last = RuntimeError("empty audio")
+        except Exception as exc:  # network hiccup / service busy
+            last = exc
+        log.warning("Voice attempt %d failed (%s) — retrying", k + 1, last)
+        time.sleep(3 * (k + 1))
+    raise RuntimeError(f"voice service failed: {last}")
+
+
 async def _edge_segment(text: str, voice: str, rate: str, mp3_path: Path):
     import edge_tts
 
@@ -71,7 +100,7 @@ def synthesize(cfg, segments: list[dict], folder: Path) -> dict:
         text = seg["text"].strip()
         if backend == "edge":
             mp3 = folder / f"seg_{i:02d}.mp3"
-            words = asyncio.run(_edge_segment(text, _voice_for(cfg, seg["speaker"]), rate, mp3))
+            words = _edge_with_retry(text, _voice_for(cfg, seg["speaker"]), rate, mp3)
             pcm = _mp3_to_pcm(mp3)
             mp3.unlink(missing_ok=True)
             dur = len(pcm) / SR
