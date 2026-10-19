@@ -291,18 +291,30 @@ def music_track(cfg=None):
     return ensure()
 
 
-def encode(frames, W, H, total, audio: Path, out: Path, music=None, music_vol=0.07):
+def encode(frames, W, H, total, audio: Path, out: Path, music=None, music_vol=0.07, delay=0.0,
+           sting=None):
+    """Video from frames + voice track (shifted by `delay` s), optional looped music bed and intro sting."""
     cmd = ["ffmpeg", "-y", "-v", "error",
            "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
            "-i", str(audio)]
+    ms = int(delay * 1000)
+    chains = [f"[1:a]aformat=channel_layouts=stereo,adelay={ms}|{ms},apad[v]"]
+    mixes = ["[v]"]
+    idx = 2
     if music:
-        cmd += ["-stream_loop", "-1", "-i", str(music),
-                "-filter_complex",
-                f"[1:a]apad[v];[2:a]volume={music_vol},afade=t=out:st={max(0, total - 1.5):.2f}:d=1.5[m];"
-                "[v][m]amix=inputs=2:duration=first:normalize=0[a]",
-                "-map", "0:v", "-map", "[a]"]
-    else:
-        cmd += ["-af", "apad", "-map", "0:v", "-map", "1:a"]
+        cmd += ["-stream_loop", "-1", "-i", str(music)]
+        chains.append(f"[{idx}:a]aformat=channel_layouts=stereo,volume={music_vol},adelay={ms}|{ms},"
+                      f"afade=t=out:st={max(0, total - 1.5):.2f}:d=1.5[m]")
+        mixes.append("[m]")
+        idx += 1
+    if sting:
+        cmd += ["-i", str(sting)]
+        chains.append(f"[{idx}:a]aformat=channel_layouts=stereo,volume=0.9[s]")
+        mixes.append("[s]")
+        idx += 1
+    graph = ";".join(chains) + ";" + "".join(mixes) + \
+        f"amix=inputs={len(mixes)}:duration=first:normalize=0[a]"
+    cmd += ["-filter_complex", graph, "-map", "0:v", "-map", "[a]"]
     cmd += ["-t", f"{total:.2f}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
             "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-ac", "2",
             "-movflags", "+faststart", str(out)]

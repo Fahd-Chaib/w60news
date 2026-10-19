@@ -6,6 +6,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
+from .intro import INTRO_SECONDS, BreakingIntro
+
 from .common import (END_CARD, FPS, Captions, audio_envelope, clamp, ease_out, encode,
                      font, generated_backdrop, load_cover, music_track, rgb, text_size, wrap,
                      draw_lines)
@@ -26,6 +28,8 @@ class BaseRenderer:
         self.c_light, self.c_accent = rgb(th["light"]), rgb(th["accent"])
         self.duration = timeline["duration"]
         self.total = self.duration + (END_CARD if end_card else 0)
+        # 'BREAKING NEWS' opening: shorts only (not inside the 16:9 recap)
+        self.intro_s = INTRO_SECONDS if (end_card and H > W and cfg.get_path("intro.enabled", True)) else 0.0
         self.env = audio_envelope(self.folder / "audio.wav", timeline, self.total)
         self.segments = timeline["segments"]
         self._covers = {}
@@ -139,6 +143,18 @@ class BaseRenderer:
 
     # ── boucle de rendu ──
     def frames(self):
+        if self.intro_s:
+            intro = BreakingIntro(self)
+            n_in = int(round(self.intro_s * FPS))
+            wipe_from = n_in - int(0.35 * FPS)
+            for i in range(n_in):
+                t = i / FPS
+                img = intro.frame(t)
+                if i >= wipe_from:
+                    first = self.scene(0.0)
+                    self.chrome(first, 0.0)
+                    img = intro.wipe(img, first, (i - wipe_from + 1) / (n_in - wipe_from))
+                yield img
         n = int(math.ceil(self.total * FPS))
         for i in range(n):
             t = i / FPS
@@ -157,5 +173,10 @@ class BaseRenderer:
         return self.H * 0.70
 
     def render(self, out: Path):
-        return encode(self.frames(), self.W, self.H, self.total, self.folder / "audio.wav", out,
-                      music=music_track(self.cfg), music_vol=self.cfg.get_path("music.volume", 0.07))
+        sting = None
+        if self.intro_s:
+            from ..music import ensure_sting
+            sting = ensure_sting()
+        return encode(self.frames(), self.W, self.H, self.total + self.intro_s, self.folder / "audio.wav", out,
+                      music=music_track(self.cfg), music_vol=self.cfg.get_path("music.volume", 0.07),
+                      delay=self.intro_s, sting=sting)

@@ -116,3 +116,70 @@ def ensure():
 
 if __name__ == "__main__":
     print(generate())
+
+
+def generate_sting(path=None):
+    """Original 'breaking news' sting (≈2.4 s): riser whoosh → double impact → synth stab."""
+    path = path or ASSETS / "music" / "breaking_sting.wav"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    total = int(2.6 * SR)
+    L = np.zeros(total)
+    R = np.zeros(total)
+    rng = np.random.default_rng(7)
+
+    def add(sig, at, gain=1.0, pan=0.0):
+        a = int(at * SR)
+        b = min(total, a + len(sig))
+        L[a:b] += sig[:b - a] * gain * (1 - pan)
+        R[a:b] += sig[:b - a] * gain * (1 + pan)
+
+    # 1) reverse-whoosh riser (0.00 → 0.18): filtered noise swelling up
+    n = int(0.2 * SR)
+    noise = rng.standard_normal(n)
+    smooth = np.convolve(noise, np.ones(6) / 6, mode="same")
+    add(smooth * np.linspace(0, 1, n) ** 2, 0.0, 0.35)
+    # 2) impacts at 0.18 and 0.32: pitched-down sine thump + noise crack
+    for at, g in ((0.18, 1.0), (0.32, 0.8)):
+        n = int(0.6 * SR)
+        t = np.arange(n) / SR
+        f = 95 * np.exp(-t * 6) + 38
+        thump = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 5)
+        crack = rng.standard_normal(n) * np.exp(-t * 40)
+        add(thump * 0.9 + crack * 0.25, at, g)
+    # 3) bright synth stab chord (D minor add9) at 0.32, sustains under the title
+    chord = [62, 65, 69, 76]
+    n = int(1.9 * SR)
+    t = np.arange(n) / SR
+    env = np.minimum(1, t / 0.01) * np.exp(-t * 1.6)
+    for k, m in enumerate(chord):
+        for det, pan in ((-0.004, -0.6), (0.004, 0.6)):
+            add(_tone(_hz(m), 1.9, (1, .55, .3, .15), det) * env, 0.32, 0.07, pan)
+    # 4) ticking pulse (news-desk feel) from 0.7 s, 8th notes at 140 BPM
+    for k in range(9):
+        n = int(0.04 * SR)
+        click = np.sin(2 * np.pi * 1800 * np.arange(n) / SR) * np.exp(-np.arange(n) / SR * 120)
+        add(click, 0.7 + k * (60 / 140 / 2), 0.08, 0.3 if k % 2 else -0.3)
+    # 5) whoosh out at the wipe (2.05 s)
+    n = int(0.4 * SR)
+    noise = np.convolve(rng.standard_normal(n), np.ones(4) / 4, mode="same")
+    add(noise * np.sin(np.linspace(0, np.pi, n)) ** 2, 2.02, 0.3)
+
+    mix = np.stack([L, R], axis=1)
+    fade = int(0.15 * SR)
+    mix[-fade:] *= np.linspace(1, 0, fade)[:, None]
+    mix /= np.max(np.abs(mix)) + 1e-9
+    mix *= 0.85
+    pcm = (mix * 32767).astype(np.int16)
+    with wave.open(str(path), "wb") as w:
+        w.setnchannels(2)
+        w.setsampwidth(2)
+        w.setframerate(SR)
+        w.writeframes(pcm.tobytes())
+    return path
+
+
+def ensure_sting():
+    path = ASSETS / "music" / "breaking_sting.wav"
+    if not path.exists():
+        generate_sting(path)
+    return path

@@ -7,3 +7,4 @@ __pycache__/
 *.pyc
 .venv/
 assets/music/news_bed.wav
+assets/music/breaking_sting.wav
