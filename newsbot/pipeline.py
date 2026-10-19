@@ -14,6 +14,7 @@ from .config import DATA
 from .db import DB
 from .publish import publish_short
 from .render import render_story
+from .render.intro import add_intro_segment
 
 log = logging.getLogger("newsbot")
 
@@ -62,6 +63,7 @@ def produce(cfg, story: dict, fmt: str) -> tuple[Path, dict, Path]:
     folder.mkdir(parents=True, exist_ok=True)
     script = writer.write_script(cfg, story, fmt)
     script["headline"] = story["headline"]
+    add_intro_segment(cfg, script, story["id"])
     (folder / "script.json").write_text(json.dumps(script, ensure_ascii=False, indent=1), "utf-8")
     tts.synthesize(cfg, script["segments"], folder)
     images = visuals.fetch_images(script.get("image_queries", []), folder, "portrait")

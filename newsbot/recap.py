@@ -89,11 +89,15 @@ def build(cfg, publish=True):
     t += _duration(intro)
     for i, s in enumerate(stories, 1):
         script = json.loads(s["meta"])["script"]
-        folder = Path(s["folder"]) if s["folder"] and Path(s["folder"]).exists() else out_dir / s["id"]
+        # the recap has its own intro card: drop the spoken "Welcome" line and rebuild the voice track
+        script["segments"] = [g for g in script["segments"] if g.get("scene") != "intro"]
+        src = Path(s["folder"]) if s["folder"] else None
+        folder = out_dir / s["id"]
         folder.mkdir(parents=True, exist_ok=True)
-        if not (folder / "timeline.json").exists():
-            # GitHub Actions: each run is a fresh machine → rebuild the voice track from the stored script
-            tts.synthesize(cfg, script["segments"], folder)
+        if src and src.exists():
+            for img in src.glob("land_*.jpg"):
+                (folder / img.name).write_bytes(img.read_bytes())
+        tts.synthesize(cfg, script["segments"], folder)
         imgs = visuals.fetch_images(script.get("image_queries", []), folder, "landscape")
         part = out_dir / f"{i:02d}_story.mp4"
         render_story(cfg, script, folder, imgs, part, "motion", W=W, H=H, end_card=False)

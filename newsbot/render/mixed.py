@@ -20,7 +20,7 @@ from .common import (clamp, draw_lines, ease_in_out, ease_out, ease_out_back, fi
 from .motion import MotionRenderer
 from .slides import SlidesRenderer
 
-SCENES = ("desk", "photo", "stat", "points", "claim", "versus", "timeline", "question")
+SCENES = ("intro", "desk", "photo", "stat", "points", "claim", "versus", "timeline", "question")
 
 
 class MixedRenderer(BaseRenderer):
@@ -46,7 +46,7 @@ class MixedRenderer(BaseRenderer):
     # ── shot dispatch ─────────────────────────────────────────
     def shot(self, i, t):
         sc = self.segments[i]["scene"]
-        if sc == "desk":
+        if sc in ("desk", "intro"):
             return self.desk.scene(t)
         if sc == "photo":
             img = self.motion.scene(t)
@@ -63,7 +63,7 @@ class MixedRenderer(BaseRenderer):
         k = t - seg["start"]
         img = self.shot(i, t)
         dur = 0.34
-        if i > 0 and k < dur:
+        if i > self.first_seg and k < dur:
             prev = self.shot(i - 1, self.segments[i - 1]["end"] - 0.02)
             img = self.transition(prev, img, ease_in_out(k / dur), i)
         return img

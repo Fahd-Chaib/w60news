@@ -9,6 +9,7 @@ import logging
 
 from .config import DATA
 from .render import render_story
+from .render.intro import add_intro_segment
 from .tts import synthesize
 
 log = logging.getLogger("newsbot.demo")
@@ -93,7 +94,8 @@ def run(cfg, formats=("mixed",), landscape=False):
     for fmt in formats:
         folder = out_dir / fmt
         folder.mkdir(exist_ok=True)
-        script = {**DEMO, "format": fmt, "segments": SEGMENTS[fmt]}
+        script = {**DEMO, "format": fmt, "segments": [dict(s) for s in SEGMENTS[fmt]]}
+        add_intro_segment(cfg, script, "demo")
         (folder / "script.json").write_text(json.dumps(script, ensure_ascii=False, indent=1), "utf-8")
         synthesize(cfg, script["segments"], folder)
         out = out_dir / f"demo_{fmt}.mp4"

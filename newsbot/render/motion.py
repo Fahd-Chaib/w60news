@@ -57,7 +57,7 @@ class MotionRenderer(BaseRenderer):
         d = ImageDraw.Draw(img, "RGBA")
         cy = H * (0.40 if self.vertical else 0.44)
         k = t - start
-        if i == 0:
+        if i == self.first_seg:
             f = font("Bold", int(44 * u))
             lab = "TOP STORY"
             lw, lh = text_size(f, lab)

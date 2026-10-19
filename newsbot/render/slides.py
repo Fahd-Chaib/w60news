@@ -96,7 +96,7 @@ class SlidesRenderer(BaseRenderer):
         top = H * (0.39 if has_photo else 0.20)
         area_h = H * 0.62 - top
         d = ImageDraw.Draw(img, "RGBA")
-        kind = seg.get("kind") or ("title" if i == 0 else "headline")
+        kind = seg.get("kind") or ("title" if i == self.first_seg else "headline")
         x0, mw = W * 0.10, int(W * 0.80)
 
         if kind == "stat" and seg.get("big"):
