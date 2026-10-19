@@ -38,6 +38,11 @@ def _service():
     import json
     if TOKEN.exists():
         creds = Credentials.from_authorized_user_file(str(TOKEN), SCOPES)
+    elif env("YOUTUBE_REFRESH_TOKEN"):  # browser setup (OAuth Playground): 3 separate secrets
+        creds = Credentials.from_authorized_user_info({
+            "client_id": env("YOUTUBE_CLIENT_ID"), "client_secret": env("YOUTUBE_CLIENT_SECRET"),
+            "refresh_token": env("YOUTUBE_REFRESH_TOKEN"), "token_uri": "https://oauth2.googleapis.com/token",
+        }, SCOPES)
     elif env("YOUTUBE_TOKEN_JSON"):
         creds = Credentials.from_authorized_user_info(json.loads(env("YOUTUBE_TOKEN_JSON")), SCOPES)
     else:

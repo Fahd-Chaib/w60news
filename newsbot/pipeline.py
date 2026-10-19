@@ -22,7 +22,7 @@ log = logging.getLogger("newsbot")
 def connected_platforms(cfg) -> list[str]:
     from .config import env
     plats, out = cfg["platforms"], []
-    if plats.get("youtube", {}).get("enabled") and env("YOUTUBE_TOKEN_JSON"):
+    if plats.get("youtube", {}).get("enabled") and (env("YOUTUBE_TOKEN_JSON") or env("YOUTUBE_REFRESH_TOKEN")):
         out.append("youtube")
     if plats.get("instagram", {}).get("enabled") and env("INSTAGRAM_ACCESS_TOKEN") and env("INSTAGRAM_USER_ID"):
         out.append("instagram")
