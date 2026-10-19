@@ -18,6 +18,18 @@ from .render import render_story
 log = logging.getLogger("newsbot")
 
 
+def connected_platforms(cfg) -> list[str]:
+    from .config import env
+    plats, out = cfg["platforms"], []
+    if plats.get("youtube", {}).get("enabled") and env("YOUTUBE_TOKEN_JSON"):
+        out.append("youtube")
+    if plats.get("instagram", {}).get("enabled") and env("INSTAGRAM_ACCESS_TOKEN") and env("INSTAGRAM_USER_ID"):
+        out.append("instagram")
+    if plats.get("tiktok", {}).get("enabled") and env("TIKTOK_TOKEN_JSON"):
+        out.append("tiktok")
+    return out
+
+
 class RunLock:
     """Empêche deux passages simultanés si un rendu dure plus longtemps que l'intervalle cron."""
 
@@ -71,6 +83,10 @@ def run(cfg):
     if not any(env(p["key_env"]) for p in cfg.get_path("llm.providers", [])):
         log.warning("Setup not finished: add GROQ_API_KEY (or CEREBRAS_API_KEY) to the repository "
                     "secrets. Skipping this run.")
+        return
+    if not cfg.get("dry_run") and not connected_platforms(cfg):
+        log.warning("No platform connected yet (YouTube / Instagram / TikTok secrets missing). "
+                    "Skipping the scheduled run — use the 'preview' mode to test without publishing.")
         return
     with RunLock():
         db = DB()

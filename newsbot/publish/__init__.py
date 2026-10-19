@@ -21,7 +21,7 @@ def youtube_text(script, short=True):
     lines = [script.get("description", ""), _question(script), "",
              "Sources: " + ", ".join(script.get("sources", []))]
     lines += [f"• {u}" for u in script.get("source_urls", [])[:6]]
-    lines += ["", "AI-assisted video, cross-checked against multiple news outlets.",
+    lines += ["", "AI-assisted video, cross-checked against multiple news outlets. Photos: Pixabay.",
               _hashtags(script, ["Shorts"] if short else [])]
     return "\n".join(lines)
 
@@ -30,7 +30,7 @@ def social_caption(script):
     return "\n\n".join(p for p in [
         script.get("title", ""), script.get("description", ""), _question(script),
         "Sources: " + ", ".join(script.get("sources", [])),
-        "AI-assisted content.",
+        "AI-assisted content · Photos: Pixabay",
         _hashtags(script, ["news", "worldnews"]),
     ] if p)
 
@@ -42,14 +42,16 @@ def publish_short(cfg, db, story_id: str, video: Path, script: dict) -> dict:
         return {"dry_run": True}
     plats = cfg["platforms"]
     jobs = []
-    if plats.get("youtube", {}).get("enabled"):
+    from ..pipeline import connected_platforms
+    ready = connected_platforms(cfg)
+    if "youtube" in ready:
         from . import youtube
         jobs.append(("youtube", lambda: youtube.upload(
             cfg, video, script["title"], youtube_text(script), script.get("hashtags", []))))
-    if plats.get("instagram", {}).get("enabled"):
+    if "instagram" in ready:
         from . import instagram
         jobs.append(("instagram", lambda: instagram.upload(cfg, video, social_caption(script))))
-    if plats.get("tiktok", {}).get("enabled"):
+    if "tiktok" in ready:
         from . import tiktok
         jobs.append(("tiktok", lambda: tiktok.upload(cfg, video, social_caption(script))))
     for name, job in jobs:

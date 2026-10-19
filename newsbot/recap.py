@@ -121,7 +121,7 @@ def build(cfg, publish=True):
         [f"The {len(stories)} stories that shaped the day, explained in a few minutes.", ""]
         + [f"{_ts(c[0])} {c[1]}" for c in chapters]
         + ["", "Sources: " + ", ".join(sources),
-           "AI-assisted video, cross-checked against multiple news outlets.", "#news #worldnews #dailynews"])
+           "AI-assisted video, cross-checked against multiple news outlets. Photos: Pixabay.", "#news #worldnews #dailynews"])
     (out_dir / "description.txt").write_text(desc, "utf-8")
     log.info("Recap ready: %s (%.0f s)", final, _duration(final))
 
