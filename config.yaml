@@ -97,7 +97,7 @@ sources:
 platforms:
   youtube:
     enabled: true
-    privacy: "private"            # private for the first days → then "public"
+    privacy: "public"             # public | unlisted | private
     category_id: "25"             # News & Politics
     upload_recap: true
   instagram:
