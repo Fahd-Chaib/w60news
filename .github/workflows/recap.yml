@@ -31,6 +31,7 @@ jobs:
         run: bash deploy/state.sh pull
       - name: Build and publish the recap
         env:
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
           PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           STATE_KEY: ${{ secrets.STATE_KEY }}
           YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}

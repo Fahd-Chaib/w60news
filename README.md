@@ -60,7 +60,7 @@ nouveau, ce qui reste largement dedans.
 |---|---|
 | `GROQ_API_KEY` | console.groq.com → API Keys (gratuit) |
 | `CEREBRAS_API_KEY` | cloud.cerebras.ai → API Keys (gratuit, relais optionnel mais conseillé) |
-| `PEXELS_API_KEY` | pexels.com/api (gratuit, optionnel) |
+| `PIXABAY_API_KEY` | pixabay.com/api/docs → la clé s'affiche une fois connecté (gratuit, optionnel) |
 | `STATE_KEY` | sur ton PC : `python -m newsbot keygen` |
 | `YOUTUBE_TOKEN_JSON` | étape 3 |
 | `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_USER_ID` | étape 4 |
@@ -112,7 +112,7 @@ Ensuite tu n'as plus rien à faire : le planning tourne tout seul.
 
 - **Recoupement obligatoire** : une info vue par un seul média n'est jamais traitée.
 - **Factuel** : le LLM ne peut utiliser que les faits des dépêches, réécrits avec ses mots, et attribue les infos sensibles.
-- **Images libres** uniquement (Pexels) ou fonds générés, jamais les photos des médias.
+- **Images libres** uniquement (Pixabay) ou fonds générés, jamais les photos des médias.
 - **Transparence IA** : mention à l'écran, `containsSyntheticMedia` (YouTube), `is_aigc` (TikTok).
 - **Anti-doublon 48 h**, plateformes indépendantes (une panne n'arrête pas les autres), jamais deux passages en même temps.
 - **Mémoire** sur la branche `state` (une seule version, l'historique ne grossit pas) ; les tokens y sont **chiffrés**.
@@ -134,7 +134,7 @@ newsbot/
   fetch.py     RSS                 cluster.py  regroupement local (0 token)
   curate.py    sélection (LLM)     writer.py   scripts anglais (LLM)
   llm.py       routeur Groq/Cerebras            tts.py      voix + timings mot à mot
-  visuals.py   photos Pexels       music.py    jingle original
+  visuals.py   photos Pixabay       music.py    jingle original
   pipeline.py  un passage complet  recap.py    récap 16:9 du soir
   vault.py     tokens chiffrés     render/     moteur vidéo (anchors.py = Sam & Nina)
   publish/     youtube.py · instagram.py · tiktok.py
