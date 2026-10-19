@@ -67,6 +67,11 @@ def run(cfg):
     if q0 is not None and q0 <= hour < q1:
         log.info("Heures calmes (%sh-%sh) : rien à faire.", q0, q1)
         return
+    from .config import env
+    if not any(env(p["key_env"]) for p in cfg.get_path("llm.providers", [])):
+        log.warning("Setup not finished: add GROQ_API_KEY (or CEREBRAS_API_KEY) to the repository "
+                    "secrets. Skipping this run.")
+        return
     with RunLock():
         db = DB()
         db.prune()
