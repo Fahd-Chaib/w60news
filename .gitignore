@@ -1,0 +1,9 @@
+# secrets — never commit
+.env
+secrets/
+# generated at runtime (the bot's memory lives on the `state` branch)
+data/
+__pycache__/
+*.pyc
+.venv/
+assets/music/news_bed.wav

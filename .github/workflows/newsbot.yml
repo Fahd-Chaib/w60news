@@ -1,0 +1,73 @@
+name: News run
+
+# Every 30 minutes: read the news, make videos only if something juicy happened, publish.
+on:
+  schedule:
+    - cron: "7,37 * * * *"        # off the :00/:30 rush hour on GitHub's scheduler
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "run = publish · preview = make videos without publishing · demo = test render"
+        type: choice
+        options: [run, preview, demo]
+        default: preview
+
+permissions:
+  contents: write                  # to save the bot's memory on the `state` branch
+
+concurrency:
+  group: newsbot                   # never two runs at the same time (shared with the recap)
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ffmpeg + dependencies
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          pip install -q -r requirements.txt
+
+      - name: Restore bot memory
+        run: bash deploy/state.sh pull
+
+      - name: Run the bot
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          STATE_KEY: ${{ secrets.STATE_KEY }}
+          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+          INSTAGRAM_USER_ID: ${{ secrets.INSTAGRAM_USER_ID }}
+          TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          TIKTOK_TOKEN_JSON: ${{ secrets.TIKTOK_TOKEN_JSON }}
+          TTS_BACKEND: edge
+        run: python -m newsbot "${{ github.event.inputs.mode || 'run' }}"
+
+      - name: Save bot memory
+        # preview/demo runs never touch the memory, so they can't block real stories
+        if: always() && (github.event_name == 'schedule' || github.event.inputs.mode == 'run')
+        run: bash deploy/state.sh push
+
+      - name: Keep today's videos for 3 days (Actions → this run → Artifacts)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: videos-${{ github.run_id }}
+          path: |
+            data/stories/**/short.mp4
+            data/stories/**/script.json
+            data/demo/*.mp4
+            data/logs/newsbot.log
+          retention-days: 3
+          if-no-files-found: ignore

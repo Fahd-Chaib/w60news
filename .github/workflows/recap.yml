@@ -1,0 +1,50 @@
+name: Daily recap
+
+# Every evening: stitch the day's stories into one long 16:9 YouTube video with chapters.
+on:
+  schedule:
+    - cron: "48 20 * * *"         # 20:48 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: newsbot
+  cancel-in-progress: false
+
+jobs:
+  recap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install ffmpeg + dependencies
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          pip install -q -r requirements.txt
+      - name: Restore bot memory
+        run: bash deploy/state.sh pull
+      - name: Build and publish the recap
+        env:
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+          STATE_KEY: ${{ secrets.STATE_KEY }}
+          YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+          TTS_BACKEND: edge
+        run: python -m newsbot recap
+      - name: Save bot memory
+        if: always()
+        run: bash deploy/state.sh push
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: recap-${{ github.run_id }}
+          path: |
+            data/recaps/**/recap.mp4
+            data/recaps/**/description.txt
+          retention-days: 3
+          if-no-files-found: ignore
