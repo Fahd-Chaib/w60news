@@ -30,7 +30,7 @@ class BaseRenderer:
         self.total = self.duration + (END_CARD if end_card else 0)
         self.env = audio_envelope(self.folder / "audio.wav", timeline, self.total)
         self.segments = timeline["segments"]
-        # branded opening ("Welcome to W60 News!") = first segment of the voice timeline
+        # branded opening ("Welcome to World in 60!") = first segment of the voice timeline
         self.has_intro = bool(self.segments) and self.segments[0].get("scene") == "intro"
         self.first_seg = 1 if self.has_intro else 0
         self.intro_end = (self.segments[0]["end"] + 0.16) if self.has_intro else 0.0

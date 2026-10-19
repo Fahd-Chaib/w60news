@@ -1,8 +1,8 @@
-"""Branded opening: Sam or Nina says "Welcome to W60 News!" (≈2 s).
+"""Branded opening: Sam or Nina says "Welcome to World in 60!" (≈2 s).
 
 The welcome line is the first segment of the voice timeline (scene "intro"), so the voice,
 lip-sync and timing come from the real TTS. This module only draws the pictures:
-  · W60 logo badge pops in with a spinning globe and light rays
+  · "60" logo badge pops in with a spinning globe and light rays
   · the speaking anchor rises into frame, mouth synced to the voice
   · the welcome words appear one by one as they are spoken
   · tagline ticker at the bottom, then a red wipe into the first shot
@@ -30,7 +30,7 @@ def add_intro_segment(cfg, script: dict, key: str) -> dict:
         speaker = who
     else:  # single voice-over formats: the narrator is Nina's voice
         who, speaker = "b", "narrator"
-    text = cfg.get_path("intro.text") or "Welcome to W60 News!"
+    text = cfg.get_path("intro.text") or f"Welcome to {cfg['channel']['name']}!"
     script["segments"] = [{"speaker": speaker, "anchor": who, "scene": "intro", "kind": "intro",
                            "text": text}] + segs
     return script
@@ -43,8 +43,9 @@ class BrandIntro:
         self.red, self.dark, self.acc = r.c_primary, r.c_dark, r.c_accent
         cfg = r.cfg
         self.who = seg.get("anchor") or (seg.get("speaker") if seg.get("speaker") in ("a", "b") else "b")
-        self.logo_txt = cfg.get_path("intro.logo") or "W60"
-        self.logo_sub = cfg.get_path("intro.logo_sub") or "NEWS"
+        self.logo_txt = cfg.get_path("intro.logo") or "60"
+        self.logo_sub = cfg.get_path("intro.logo_sub") or cfg["channel"]["name"].upper()
+        self.channel = cfg["channel"]["name"].upper()
         self.tagline = cfg["channel"].get("tagline", "")
         self._bg = self._background()
         self._logo = self._logo_layer()
@@ -72,28 +73,29 @@ class BrandIntro:
     def _logo_layer(self):
         u = self.u
         R = int(190 * u)
-        S = 2 * R + int(20 * u)
-        img = Image.new("RGBA", (S, S + int(150 * u)), (0, 0, 0, 0))
+        fs = font("Bold", int(58 * u))
+        sw = int(fs.getlength(self.logo_sub))
+        pill_w, pill_h = sw + int(80 * u), int(88 * u)
+        S = max(2 * R + int(20 * u), pill_w + int(20 * u))
+        img = Image.new("RGBA", (S, 2 * R + int(170 * u)), (0, 0, 0, 0))
         d = ImageDraw.Draw(img)
         c = S // 2
-        d.ellipse((c - R, c - R, c + R, c + R), fill=self.red)
-        d.ellipse((c - R, c - R, c + R, c + R), outline=(255, 255, 255), width=int(10 * u))
+        cyl = R + int(10 * u)
+        d.ellipse((c - R, cyl - R, c + R, cyl + R), fill=self.red)
+        d.ellipse((c - R, cyl - R, c + R, cyl + R), outline=(255, 255, 255), width=int(10 * u))
         f, lines, size = fit_text(self.logo_txt, "Bold", int(R * 1.55), int(R * 0.9), int(190 * u), int(60 * u), 1.0)
         tw, _ = text_size(f, lines[0])
-        d.text((c - tw / 2, c - size * 0.62), lines[0], font=f, fill=(255, 255, 255))
-        fs = font("Bold", int(64 * u))
-        sw, _ = text_size(fs, self.logo_sub)
-        pill_w, pill_h = sw + int(70 * u), int(92 * u)
-        top = c + R - int(30 * u)
-        d.rounded_rectangle((c - pill_w / 2, top, c + pill_w / 2, top + pill_h), int(46 * u), fill=(255, 255, 255))
-        d.text((c - sw / 2, top + int(8 * u)), self.logo_sub, font=fs, fill=self.dark)
+        d.text((c - tw / 2, cyl - size * 0.62), lines[0], font=f, fill=(255, 255, 255))
+        top = cyl + R - int(30 * u)
+        d.rounded_rectangle((c - pill_w / 2, top, c + pill_w / 2, top + pill_h), int(44 * u), fill=(255, 255, 255))
+        d.text((c - sw / 2, top + int(10 * u)), self.logo_sub, font=fs, fill=self.dark)
         return img
 
     def _ticker_strip(self):
         u = self.u
         f = font("Bold", int(38 * u))
-        unit = f"  {self.logo_txt} {self.logo_sub}  •  {self.tagline.upper()}  •"
-        uw, _ = text_size(f, unit)
+        unit = f"  {self.channel}  •  {self.tagline.upper()}  •"
+        uw = int(round(f.getlength(unit)))
         reps = int(self.W * 2 / max(uw, 1)) + 3
         strip = Image.new("RGBA", (uw * reps, int(76 * u)), self.acc + (255,))
         d = ImageDraw.Draw(strip)
