@@ -53,7 +53,21 @@ jobs:
           TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
           TIKTOK_TOKEN_JSON: ${{ secrets.TIKTOK_TOKEN_JSON }}
           TTS_BACKEND: edge
-        run: python -m newsbot "${{ github.event.inputs.mode || 'run' }}"
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m newsbot "${{ github.event.inputs.mode || 'run' }}" 2>&1 | tee run.log
+
+      - name: Show the error in the run summary
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          lines = open("run.log", encoding="utf-8", errors="replace").read().splitlines()[-25:] if os.path.exists("run.log") else ["no log"]
+          msg = "%0A".join(l.replace("%", "%25").replace("\r", "") for l in lines)
+          print(f"::error title=Bot error::{msg}")
+          PY
 
       - name: Save bot memory
         # preview/demo runs never touch the memory, so they can't block real stories

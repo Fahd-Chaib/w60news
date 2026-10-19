@@ -36,7 +36,21 @@ jobs:
           STATE_KEY: ${{ secrets.STATE_KEY }}
           YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
           TTS_BACKEND: edge
-        run: python -m newsbot recap
+        shell: bash
+        run: |
+          set -o pipefail
+          python -m newsbot recap 2>&1 | tee run.log
+      - name: Show the error in the run summary
+        if: failure()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import os
+          lines = open("run.log", encoding="utf-8", errors="replace").read().splitlines()[-25:] if os.path.exists("run.log") else ["no log"]
+          msg = "%0A".join(l.replace("%", "%25").replace("\r", "") for l in lines)
+          print(f"::error title=Bot error::{msg}")
+          PY
+
       - name: Save bot memory
         if: always()
         run: bash deploy/state.sh push
