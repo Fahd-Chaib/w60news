@@ -55,6 +55,7 @@ jobs:
           TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
           TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
           TIKTOK_TOKEN_JSON: ${{ secrets.TIKTOK_TOKEN_JSON }}
+          GITHUB_TOKEN: ${{ github.token }}   # temporary public hosting of videos for Instagram
           TTS_BACKEND: edge
         shell: bash
         run: |

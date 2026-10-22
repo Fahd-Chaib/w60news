@@ -56,20 +56,23 @@ def upload(cfg, video: Path, caption: str, cover: Path | None = None) -> tuple[s
         user_id = me.get("user_id") or me.get("id")
         log.info("Instagram account: @%s (%s)", me.get("username"), user_id)
 
-    # 1) conteneur Reel
-    c = _check(requests.post(f"{base}/{user_id}/media", data={
-        "media_type": "REELS", "upload_type": "resumable", "caption": caption[:2200],
-        "share_to_feed": "true", "access_token": tok}, timeout=60))
-    container = c["id"]
-    upload_uri = c.get("uri") or f"https://rupload.facebook.com/ig-api-upload/{ver}/{container}"
+    # 1) Reel container. Instagram Login accounts need a public video URL: the video is parked
+    #    for a few minutes as a GitHub release asset of this (public) repo, then deleted.
+    from .hosting import public_url, cleanup
+    url, asset = public_url(video)
+    try:
+        c = _check(requests.post(f"{base}/{user_id}/media", data={
+            "media_type": "REELS", "video_url": url, "caption": caption[:2200],
+            "share_to_feed": "true", "access_token": tok}, timeout=60))
+        container = c["id"]
+        _wait_and_publish_ready(base, container, tok)
+    finally:
+        cleanup(asset)
 
-    # 2) envoi du fichier
-    size = video.stat().st_size
-    with open(video, "rb") as f:
-        _check(requests.post(upload_uri, data=f, timeout=600, headers={
-            "Authorization": f"OAuth {tok}", "offset": "0", "file_size": str(size)}))
+    return _publish(base, user_id, container, tok)
 
-    # 3) attente du traitement
+
+def _wait_and_publish_ready(base, container, tok):
     for _ in range(40):
         st = _check(requests.get(f"{base}/{container}",
                                  params={"fields": "status_code,status", "access_token": tok}, timeout=30))
@@ -77,12 +80,13 @@ def upload(cfg, video: Path, caption: str, cover: Path | None = None) -> tuple[s
         if code == "FINISHED":
             break
         if code in ("ERROR", "EXPIRED"):
-            raise RuntimeError(f"Instagram a refusé la vidéo : {st}")
+            raise RuntimeError(f"Instagram rejected the video: {st}")
         time.sleep(15)
     else:
-        raise RuntimeError("Instagram : traitement trop long")
+        raise RuntimeError("Instagram: processing took too long")
 
-    # 4) publication
+
+def _publish(base, user_id, container, tok):
     pub = _check(requests.post(f"{base}/{user_id}/media_publish",
                                data={"creation_id": container, "access_token": tok}, timeout=60))
     media_id = pub["id"]
