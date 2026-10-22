@@ -6,7 +6,7 @@ The world's biggest stories, explained in 60 seconds. 🌍
 
 Meet Sam and Nina, your two cartoon anchors. Several times a day, they break down the international news everyone is talking about: what happened, the key numbers, and why it matters to you.
 
-📰 Every story is cross-checked with at least two independent news outlets (BBC, Reuters-style wires, Al Jazeera, The Guardian, France 24, DW and more). Sources are listed under every video.
+📰 Every story is cross-checked with at least two independent news outlets (BBC, Al Jazeera, The Guardian, The New York Times, France 24, DW, NPR, Sky News and more). Sources are listed under every video.
 ⚡ New Shorts every day, as soon as big news breaks.
 📺 A full daily recap every evening.
 
