@@ -119,10 +119,10 @@ if __name__ == "__main__":
 
 
 def generate_sting(path=None):
-    """Original logo sting for the welcome intro: riser whoosh → impacts → bright synth chord."""
+    """Original logo sting for the welcome intro: soft riser whoosh → one low hit (≈0.7 s)."""
     path = path or ASSETS / "music" / "breaking_sting.wav"
     path.parent.mkdir(parents=True, exist_ok=True)
-    total = int(2.2 * SR)
+    total = int(0.8 * SR)
     L = np.zeros(total)
     R = np.zeros(total)
     rng = np.random.default_rng(7)
@@ -137,28 +137,18 @@ def generate_sting(path=None):
     n = int(0.2 * SR)
     noise = rng.standard_normal(n)
     smooth = np.convolve(noise, np.ones(6) / 6, mode="same")
-    add(smooth * np.linspace(0, 1, n) ** 2, 0.0, 0.35)
-    # 2) impacts at 0.18 and 0.32: pitched-down sine thump + noise crack
-    for at, g in ((0.18, 1.0), (0.32, 0.8)):
-        n = int(0.6 * SR)
-        t = np.arange(n) / SR
-        f = 95 * np.exp(-t * 6) + 38
-        thump = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 5)
-        crack = rng.standard_normal(n) * np.exp(-t * 40)
-        add(thump * 0.9 + crack * 0.25, at, g)
-    # 3) bright synth stab chord (D minor add9) at 0.32, sustains under the title
-    chord = [62, 65, 69, 76]
-    n = int(1.8 * SR)
+    add(smooth * np.linspace(0, 1, n) ** 2, 0.0, 0.25)
+    # 2) one soft, low "hit" as the logo lands (no sustained chord)
+    n = int(0.5 * SR)
     t = np.arange(n) / SR
-    env = np.minimum(1, t / 0.01) * np.exp(-t * 2.2)
-    for k, m in enumerate(chord):
-        for det, pan in ((-0.004, -0.6), (0.004, 0.6)):
-            add(_tone(_hz(m), 1.8, (1, .55, .3, .15), det) * env, 0.32, 0.05, pan)
+    f = 80 * np.exp(-t * 6) + 40
+    thump = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 7)
+    add(thump, 0.18, 0.8)
     mix = np.stack([L, R], axis=1)
-    fade = int(0.15 * SR)
+    fade = int(0.2 * SR)
     mix[-fade:] *= np.linspace(1, 0, fade)[:, None]
     mix /= np.max(np.abs(mix)) + 1e-9
-    mix *= 0.55  # sits under the anchor's voice
+    mix *= 0.5
     pcm = (mix * 32767).astype(np.int16)
     with wave.open(str(path), "wb") as w:
         w.setnchannels(2)
@@ -169,7 +159,7 @@ def generate_sting(path=None):
 
 
 def ensure_sting():
-    path = ASSETS / "music" / "breaking_sting.wav"
+    path = ASSETS / "music" / "intro_sting_v2.wav"
     if not path.exists():
         generate_sting(path)
     return path

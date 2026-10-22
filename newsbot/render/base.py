@@ -174,9 +174,9 @@ class BaseRenderer:
 
     def render(self, out: Path):
         sting = None
-        if self.has_intro:
+        if self.has_intro and self.cfg.get_path("music.intro_sting", True):
             from ..music import ensure_sting
             sting = ensure_sting()
         return encode(self.frames(), self.W, self.H, self.total, self.folder / "audio.wav", out,
                       music=music_track(self.cfg), music_vol=self.cfg.get_path("music.volume", 0.07),
-                      sting=sting)
+                      sting=sting, sting_vol=self.cfg.get_path("music.intro_sting_volume", 0.35))

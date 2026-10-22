@@ -292,7 +292,7 @@ def music_track(cfg=None):
 
 
 def encode(frames, W, H, total, audio: Path, out: Path, music=None, music_vol=0.07, delay=0.0,
-           sting=None):
+           sting=None, sting_vol=0.35):
     """Video from frames + voice track (shifted by `delay` s), optional looped music bed and intro sting."""
     cmd = ["ffmpeg", "-y", "-v", "error",
            "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS), "-i", "-",
@@ -309,7 +309,7 @@ def encode(frames, W, H, total, audio: Path, out: Path, music=None, music_vol=0.
         idx += 1
     if sting:
         cmd += ["-i", str(sting)]
-        chains.append(f"[{idx}:a]aformat=channel_layouts=stereo,volume=0.9[s]")
+        chains.append(f"[{idx}:a]aformat=channel_layouts=stereo,volume={sting_vol}[s]")
         mixes.append("[s]")
         idx += 1
     graph = ";".join(chains) + ";" + "".join(mixes) + \
