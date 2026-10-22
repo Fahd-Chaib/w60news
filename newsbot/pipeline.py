@@ -24,7 +24,7 @@ def connected_platforms(cfg) -> list[str]:
     plats, out = cfg["platforms"], []
     if plats.get("youtube", {}).get("enabled") and (env("YOUTUBE_TOKEN_JSON") or env("YOUTUBE_REFRESH_TOKEN")):
         out.append("youtube")
-    if plats.get("instagram", {}).get("enabled") and env("INSTAGRAM_ACCESS_TOKEN") and env("INSTAGRAM_USER_ID"):
+    if plats.get("instagram", {}).get("enabled") and env("INSTAGRAM_ACCESS_TOKEN"):
         out.append("instagram")
     if plats.get("tiktok", {}).get("enabled") and env("TIKTOK_TOKEN_JSON"):
         out.append("tiktok")

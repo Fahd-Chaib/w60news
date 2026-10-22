@@ -47,11 +47,14 @@ def _check(r: requests.Response):
 def upload(cfg, video: Path, caption: str, cover: Path | None = None) -> tuple[str, str]:
     ig = cfg["platforms"]["instagram"]
     host, ver = ig["graph_host"], ig["api_version"]
-    user_id = env("INSTAGRAM_USER_ID")
-    if not user_id:
-        raise RuntimeError("INSTAGRAM_USER_ID is missing")
     tok = _token(cfg)
     base = f"https://{host}/{ver}"
+    user_id = env("INSTAGRAM_USER_ID")
+    if not user_id:  # look it up from the token (Instagram API with Instagram Login)
+        me = _check(requests.get(f"{base}/me", params={"fields": "user_id,username", "access_token": tok},
+                                 timeout=30))
+        user_id = me.get("user_id") or me.get("id")
+        log.info("Instagram account: @%s (%s)", me.get("username"), user_id)
 
     # 1) conteneur Reel
     c = _check(requests.post(f"{base}/{user_id}/media", data={
