@@ -76,6 +76,10 @@ class DB:
         )
         self.conn.commit()
 
+    def update_meta(self, story_id, meta: dict):
+        self.conn.execute("UPDATE stories SET meta=? WHERE id=?", (json.dumps(meta, ensure_ascii=False), story_id))
+        self.conn.commit()
+
     def set_story_status(self, story_id, status):
         self.conn.execute("UPDATE stories SET status=? WHERE id=?", (status, story_id))
         self.conn.commit()

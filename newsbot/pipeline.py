@@ -74,6 +74,40 @@ def produce(cfg, story: dict, fmt: str) -> tuple[Path, dict, Path]:
     return folder, script, out
 
 
+def catchup(cfg, db, max_items=2, hours=8):
+    """Re-sends recent videos to platforms where they failed (e.g. a platform connected later
+    or a temporary outage). The video is rebuilt from the stored script: no LLM call needed."""
+    ready = connected_platforms(cfg)
+    if not ready or cfg.get("dry_run"):
+        return
+    since = time.time() - hours * 3600
+    done = 0
+    for row in db.conn.execute("SELECT * FROM stories WHERE created>=? AND status='published' "
+                               "ORDER BY created DESC", (since,)).fetchall():
+        if done >= max_items:
+            break
+        missing = [p for p in ready if not db.already_posted(row["id"], p)]
+        meta = json.loads(row["meta"] or "{}")
+        if not missing or "script" not in meta or meta.get("catchup", 0) >= 3:
+            continue
+        meta["catchup"] = meta.get("catchup", 0) + 1
+        db.update_meta(row["id"], meta)
+        log.info("Catch-up (%s) for: %s", ", ".join(missing), row["headline"])
+        try:
+            script = meta["script"]
+            folder = DATA / "stories" / "catchup" / row["id"]
+            folder.mkdir(parents=True, exist_ok=True)
+            tts.synthesize(cfg, script["segments"], folder)
+            images = visuals.fetch_images(script.get("image_queries", []), folder, "portrait")
+            out = folder / "short.mp4"
+            render_story(cfg, script, folder, images, out, script.get("format", "mixed"))
+            res = publish_short(cfg, db, row["id"], out, script)
+            log.info("Catch-up result: %s", res)
+        except Exception as exc:
+            log.exception("Catch-up failed: %s", exc)
+        done += 1
+
+
 def run(cfg):
     sel = cfg["selection"]
     hour = datetime.now().hour
@@ -93,6 +127,7 @@ def run(cfg):
     with RunLock():
         db = DB()
         db.prune()
+        catchup(cfg, db)
         n_new = fetch.fetch_all(cfg, db)
         log.info("%d nouvelles dépêches", n_new)
         if n_new == 0:
