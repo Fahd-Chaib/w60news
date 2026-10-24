@@ -145,6 +145,27 @@ class DB:
         )
         self.conn.commit()
 
+    def count_posts(self, platform, hours=24, status="ok") -> int:
+        since = time.time() - hours * 3600
+        return self.conn.execute("SELECT COUNT(*) FROM posts WHERE platform=? AND status=? AND posted>=?",
+                                 (platform, status, since)).fetchone()[0]
+
+    def recent_error(self, platform, needle, hours=6) -> bool:
+        since = time.time() - hours * 3600
+        return self.conn.execute("SELECT 1 FROM posts WHERE platform=? AND status='failed' AND posted>=? "
+                                 "AND error LIKE ?", (platform, since, f"%{needle}%")).fetchone() is not None
+
+    def youtube_room(self, cfg, for_recap=False) -> int:
+        """Uploads still allowed on YouTube in the last 24 h. New channels have a daily cap;
+        one slot is always kept for the evening recap."""
+        yt = cfg["platforms"]["youtube"]
+        cap = int(yt.get("max_uploads_per_day", 10))
+        if not for_recap and cfg["recap"].get("enabled") and yt.get("upload_recap"):
+            cap -= 1
+        if not for_recap and self.recent_error("youtube", "uploadLimitExceeded", hours=4):
+            return 0  # YouTube already said "limit reached": wait before trying again
+        return max(0, cap - self.count_posts("youtube", 24))
+
     def already_posted(self, story_id, platform) -> bool:
         r = self.conn.execute(
             "SELECT 1 FROM posts WHERE story_id=? AND platform=? AND status='ok'",

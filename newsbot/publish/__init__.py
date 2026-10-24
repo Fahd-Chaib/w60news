@@ -44,6 +44,9 @@ def publish_short(cfg, db, story_id: str, video: Path, script: dict) -> dict:
     jobs = []
     from ..pipeline import connected_platforms
     ready = connected_platforms(cfg)
+    if "youtube" in ready and db.youtube_room(cfg) <= 0:
+        log.info("YouTube daily upload limit reached: this video goes to the other platforms only")
+        ready = [p for p in ready if p != "youtube"]
     if "youtube" in ready:
         from . import youtube
         jobs.append(("youtube", lambda: youtube.upload(

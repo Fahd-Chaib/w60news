@@ -132,7 +132,20 @@ def build(cfg, publish=True):
     if publish and not cfg.get("dry_run") and cfg["platforms"]["youtube"].get("enabled") \
             and cfg["platforms"]["youtube"].get("upload_recap"):
         from .publish import youtube
-        vid, url = youtube.upload(cfg, final, title, desc, ["news", "world news", "daily recap", "international"], thumb)
-        db.record_post(f"recap-{datetime.now():%Y%m%d}", "youtube", vid, url)
+        key = f"recap-{datetime.now():%Y%m%d}"
+        if db.youtube_room(cfg, for_recap=True) <= 0:
+            log.warning("YouTube daily upload limit reached: today's recap is not uploaded "
+                        "(the video is kept in this run's Artifacts).")
+            return final
+        try:
+            vid, url = youtube.upload(cfg, final, title, desc,
+                                      ["news", "world news", "daily recap", "international"], thumb)
+        except Exception as exc:
+            if "uploadLimitExceeded" in str(exc):
+                db.record_post(key, "youtube", status="failed", error=str(exc)[:500])
+                log.warning("YouTube refused the recap (daily upload limit). Kept in Artifacts.")
+                return final
+            raise
+        db.record_post(key, "youtube", vid, url)
         log.info("Recap published: %s", url)
     return final

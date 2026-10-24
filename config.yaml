@@ -102,6 +102,7 @@ platforms:
     privacy: "public"             # public | unlisted | private
     category_id: "25"             # News & Politics
     upload_recap: true
+    max_uploads_per_day: 10       # new channels are capped by YouTube (~10/day); 1 slot kept for the recap
   instagram:
     enabled: true
     graph_host: "graph.instagram.com"   # graph.facebook.com if you go through a Facebook Page
