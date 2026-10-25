@@ -71,6 +71,11 @@ def produce(cfg, story: dict, fmt: str) -> tuple[Path, dict, Path]:
     t0 = time.time()
     render_story(cfg, script, folder, images, out, fmt)
     log.info("Rendered %s in %.0f s → %s", fmt, time.time() - t0, out)
+    first = next((g for g in script["segments"] if g.get("scene") != "intro"), {})
+    scenes = " > ".join(g.get("scene", "?") for g in script["segments"])
+    print(f"::notice title=Video: {script.get('title', '')[:90]}::Hook: {first.get('text', '')[:160]}"
+          f" | {len(script['segments'])} lines | {scenes} | #{' #'.join(script.get('hashtags', []))}",
+          flush=True)
     return folder, script, out
 
 
