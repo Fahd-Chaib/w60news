@@ -19,7 +19,7 @@ from .config import env
 
 log = logging.getLogger("newsbot.tts")
 SR = 24000
-GAP = 0.16  # silence entre deux répliques (s)
+GAP = 0.12  # silence between two lines (s) — tight pacing keeps viewers
 
 
 def _voice_for(cfg, speaker: str) -> str:
@@ -94,8 +94,8 @@ def _estimate_words(text: str):
 def synthesize(cfg, segments: list[dict], folder: Path) -> dict:
     backend = env("TTS_BACKEND", "edge")
     rate = cfg.get("tts_rate", "+0%")
-    pieces, timeline, cursor = [], [], 0.25
-    pieces.append(np.zeros(int(0.25 * SR), dtype=np.int16))
+    pieces, timeline, cursor = [], [], 0.05
+    pieces.append(np.zeros(int(0.05 * SR), dtype=np.int16))
     for i, seg in enumerate(segments):
         text = seg["text"].strip()
         if backend == "edge":

@@ -43,6 +43,17 @@ jobs:
         run: |
           set -o pipefail
           python -m newsbot recap 2>&1 | tee run.log
+      - name: Collect video stats (feeds tomorrow's story choices)
+        if: always()
+        continue-on-error: true
+        env:
+          STATE_KEY: ${{ secrets.STATE_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          INSTAGRAM_ACCESS_TOKEN: ${{ secrets.INSTAGRAM_ACCESS_TOKEN }}
+        run: python -m newsbot stats
+
       - name: Show the error in the run summary
         if: failure()
         shell: bash

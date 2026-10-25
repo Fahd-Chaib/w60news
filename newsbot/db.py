@@ -155,6 +155,19 @@ class DB:
         return self.conn.execute("SELECT 1 FROM posts WHERE platform=? AND status='failed' AND posted>=? "
                                  "AND error LIKE ?", (platform, since, f"%{needle}%")).fetchone() is not None
 
+    def last_post_time(self, platform) -> float:
+        r = self.conn.execute("SELECT MAX(posted) FROM posts WHERE platform=? AND status='ok'",
+                              (platform,)).fetchone()
+        return r[0] or 0.0
+
+    def instagram_ok(self, cfg, score) -> bool:
+        ig = cfg["platforms"]["instagram"]
+        if (score or 0) < ig.get("min_score", 0):
+            return False
+        if self.count_posts("instagram", 24) >= ig.get("max_per_day", 99):
+            return False
+        return time.time() - self.last_post_time("instagram") >= ig.get("min_gap_minutes", 0) * 60
+
     def youtube_room(self, cfg, for_recap=False) -> int:
         """Uploads still allowed on YouTube in the last 24 h. New channels have a daily cap;
         one slot is always kept for the evening recap."""

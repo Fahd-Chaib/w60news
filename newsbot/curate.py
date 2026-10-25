@@ -20,9 +20,14 @@ describe the SAME specific event (set same_event=false otherwise).
 on people's lives. Skip dull institutional or purely procedural news.
 - Skip stories already covered (list given) unless there is a genuinely major new development.
 - Mark "grave": true for anything involving deaths, injuries, disasters, attacks, war or abuse.
+- Our own audience data (views per video) is given below: score higher the kinds of stories that \
+actually get watched, lower the ones that don't (unless the story is truly huge).
 Answer ONLY with JSON."""
 
-PROMPT = """Already covered recently:
+PROMPT = """What our audience watches (average views per video, by category, last days):
+{perf}
+
+Already covered recently:
 {covered}
 
 Clusters (id | outlets | headlines):
@@ -36,6 +41,33 @@ Return:
   "grave": false, "best_format": "characters|motion|slides"}}]}}
 Max 6 stories, best first. best_format: characters = two anchors discuss it (great for explaining \
 and for debates), motion = very visual or breaking story, slides = numbers-driven story."""
+
+
+DEFAULT_PERF = ("conflict / Middle East and human tragedies perform best, then big US politics and "
+                "weird/viral stories; science, health, tech and climate get few views")
+
+
+def audience_summary(db) -> str:
+    """Average views per category from the latest stats snapshot (fed back into story selection)."""
+    import json
+    import statistics
+    try:
+        snap = {}
+        for r in db.conn.execute("SELECT platform, data FROM stats ORDER BY collected"):
+            snap[r["platform"]] = json.loads(r["data"])
+        by_cat = {}
+        for p in db.conn.execute("SELECT p.platform, p.remote_id, s.meta FROM posts p JOIN stories s "
+                                 "ON s.id = p.story_id WHERE p.status='ok'"):
+            v = (snap.get(p["platform"], {}).get(p["remote_id"]) or {}).get("views")
+            cat = json.loads(p["meta"] or "{}").get("category")
+            if v is not None and cat:
+                by_cat.setdefault(cat, []).append(v)
+        if sum(len(v) for v in by_cat.values()) < 10:
+            return DEFAULT_PERF
+        ranked = sorted(by_cat.items(), key=lambda kv: -statistics.mean(kv[1]))
+        return ", ".join(f"{c}: {statistics.mean(v):.0f} ({len(v)} videos)" for c, v in ranked)
+    except Exception:
+        return DEFAULT_PERF
 
 
 def select_stories(cfg, db) -> list[dict]:
@@ -60,7 +92,7 @@ def select_stories(cfg, db) -> list[dict]:
     covered = db.recent_story_headlines(sel["dedup_hours"]) or ["(none)"]
     data = ask_json(
         cfg, SYSTEM.format(channel=cfg["channel"]["name"]),
-        PROMPT.format(covered="\n".join(f"- {c}" for c in covered[-30:]), clusters="\n".join(lines)),
+        PROMPT.format(perf=audience_summary(db), covered="\n".join(f"- {c}" for c in covered[-30:]), clusters="\n".join(lines)),
         max_tokens=2500,
     )
     by_cid = {c["cid"]: c for c in fresh}

@@ -18,7 +18,7 @@ def _question(script):
 
 
 def youtube_text(script, short=True):
-    lines = [script.get("description", ""), _question(script), "",
+    lines = [_question(script), script.get("description", ""), "",
              "Sources: " + ", ".join(script.get("sources", []))]
     lines += [f"• {u}" for u in script.get("source_urls", [])[:6]]
     lines += ["", "AI-assisted video, cross-checked against multiple news outlets. Photos: Pixabay.",
@@ -27,11 +27,13 @@ def youtube_text(script, short=True):
 
 
 def social_caption(script):
+    tags = script.get("hashtags", [])[:4]
     return "\n\n".join(p for p in [
-        script.get("title", ""), script.get("description", ""), _question(script),
-        "Sources: " + ", ".join(script.get("sources", [])),
-        "AI-assisted content · Photos: Pixabay",
-        _hashtags(script, ["news", "worldnews"]),
+        script.get("title", ""),                      # hook line shown before "more"
+        _question(script),
+        script.get("description", ""),
+        "Sources: " + ", ".join(script.get("sources", [])) + " · AI-assisted · Photos: Pixabay",
+        _hashtags({"hashtags": tags}, ["worldnews"]),
     ] if p)
 
 
@@ -44,6 +46,11 @@ def publish_short(cfg, db, story_id: str, video: Path, script: dict) -> dict:
     jobs = []
     from ..pipeline import connected_platforms
     ready = connected_platforms(cfg)
+    score = (db.conn.execute("SELECT score FROM stories WHERE id=?", (story_id,)).fetchone() or [0])[0]
+    if "instagram" in ready and not db.already_posted(story_id, "instagram") \
+            and not db.instagram_ok(cfg, score):
+        log.info("Instagram: skipped (daily cap / spacing / score %s) — keeping only the strongest Reels", score)
+        ready = [p for p in ready if p != "instagram"]
     if "youtube" in ready and db.youtube_room(cfg) <= 0:
         log.info("YouTube daily upload limit reached: this video goes to the other platforms only")
         ready = [p for p in ready if p != "youtube"]

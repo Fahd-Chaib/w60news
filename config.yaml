@@ -29,7 +29,7 @@ selection:
 formats:
   mode: "mixed"                   # mixed | auto (LLM picks one single style) | rotation
   rotation: [characters, motion, slides]
-  target_seconds: 52              # 45-60 s
+  target_seconds: 36              # short = more people watch to the end (data: avg watch ~3 s)
 
 characters:
   a: { name: "Sam",  role: "anchor", voice: "en-US-AndrewNeural" }   # American male
@@ -45,7 +45,7 @@ theme:
   accent: "#FFD166"
 
 intro:
-  enabled: true                   # branded opening on every short: an anchor says the line below
+  enabled: false                  # spoken "Welcome to…" opening — OFF: viewers left during it. Hook comes first now.
   text: "Welcome to World in 60!" # spoken by Sam or Nina (alternates from one story to the next)
   logo: "60"                      # big number in the red badge
   logo_sub: "WORLD IN 60"         # white pill under the badge
@@ -105,7 +105,10 @@ platforms:
     max_uploads_per_day: 10       # new channels are capped by YouTube (~10/day); 1 slot kept for the recap
   instagram:
     enabled: true
-    graph_host: "graph.instagram.com"   # graph.facebook.com if you go through a Facebook Page
+    graph_host: "graph.instagram.com"
+    max_per_day: 6                # new account: fewer, stronger Reels (12/day looked spammy)
+    min_score: 80                 # only the stronger stories go to Instagram
+    min_gap_minutes: 90           # space Reels out   # graph.facebook.com if you go through a Facebook Page
     api_version: "v25.0"
   tiktok:
     enabled: true

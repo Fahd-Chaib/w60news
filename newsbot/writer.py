@@ -11,17 +11,22 @@ Hard rules:
 dates or quotes. If outlets disagree, say so ("according to the BBC…").
 - Attribute sensitive claims to the outlet.
 - Rewrite everything in your own words: never copy a sentence from the wire items.
-- Hook in the first 2 seconds (question, striking number, contrast).
+- THE FIRST LINE IS EVERYTHING: viewers swipe away within 2 seconds. Line 1 must state the most \
+  shocking or surprising fact of the story in 12 words max (a number, a twist, a stake) — no greeting, \
+  no "Hey", no names like "Nina,", no "today we talk about". Example: "53 soldiers killed in one missile \
+  strike — in the middle of the desert."
+- Keep tension: every line should make the viewer want the next one ("But here's the twist…").
 - Short spoken sentences, simple international English (many viewers are non-native).
 - If the story is grave (deaths, war, disaster, abuse): sober, respectful tone, no jokes, no puns.
-- End with an open line (what to watch next, or a question to viewers). Never say "subscribe".
+- End with ONE simple question viewers can answer in one word in the comments (yes/no, A or B). \
+  Never say "subscribe".
 Answer ONLY with JSON."""
 
 import re
 
 FORMAT_GUIDE = {
     "mixed": """FORMAT: a fast-paced edit. {a} (anchor) and {b} (anchor) co-host and banter; EVERY line \
-gets its own on-screen shot, so the video keeps changing. 8 to 11 lines, 1-2 short sentences each, \
+gets its own on-screen shot, so the video keeps changing. 6 to 8 lines, 1-2 short sentences each, \
 speaker = "a" for {a} or "b" for {b} (alternate often; they react to each other: "Wait, really?", \
 "Exactly.", "Here's the thing…"). They never mock victims or real people.
 
@@ -40,7 +45,8 @@ words (max 18 words). Never a fake direct quote.
 NOT allowed if the story is grave.
 
 Editing rules: use at least 5 different scenes; never the same scene twice in a row; at most 3 desk \
-shots; open with desk or photo; include a stat or versus whenever the wire items contain a number; \
+shots; the FIRST line is a "photo" shot whose big = the hook in 2-5 shocking words (e.g. "53 KILLED", \
+"TRAPPED FOR A MONTH"); include a stat or versus whenever the wire items contain a number; \
 end with a question (or, if grave, a sober desk line about what happens next).""",
     "characters": """FORMAT: two cartoon TV news anchors. {a} and {b} co-host the news desk.
 {a} sets up the story and asks the questions viewers have; {b} brings context and explains the "why" \
@@ -78,9 +84,9 @@ Wire items (the ONLY source of truth):
 
 Return JSON:
 {{
-  "title": "video title, max 80 chars, catchy but not misleading",
+  "title": "video title, max 60 chars, a curiosity gap or a question (e.g. 'Why is Italy running out of fuel?'), never misleading",
   "description": "2-3 factual sentences for the video description",
-  "hashtags": ["5 to 8 relevant hashtags, no #"],
+  "hashtags": ["3 to 5 SPECIFIC hashtags about the story (country, people, event), no #, no generic ones like news"],
   "image_queries": ["3 to 5 generic stock-photo searches (places, objects, moods — never a named real person)"],
   "segments": [
     {schema}
@@ -129,10 +135,15 @@ def plan_scenes(segs: list[dict], grave: bool, sources: list[str], wire_text: st
             if desk_count > 3:
                 s["scene"] = "photo" if (n == 0 or segs[n - 1]["scene"] != "photo") else "points" \
                     if len(s.get("points") or []) >= 2 else "photo"
-    if segs and segs[0]["scene"] not in ("desk", "photo", "stat"):
-        segs[0]["scene"] = "desk"
-    if not any(s["scene"] == "desk" for s in segs):
-        segs[0]["scene"] = "desk"  # viewers always meet the anchors
+    # hook first: line 1 is a full-screen photo (or a big number) with the shocking words on screen
+    if segs and segs[0]["scene"] != "stat":
+        segs[0]["scene"] = "photo"
+        if not segs[0].get("big"):
+            segs[0]["big"] = " ".join(segs[0]["text"].split()[:4])
+        if len(segs) > 1 and segs[1]["scene"] == "photo":
+            segs[1]["scene"] = "desk"
+    if len(segs) > 1 and not any(s["scene"] == "desk" for s in segs):
+        segs[1]["scene"] = "desk"  # viewers always meet the anchors
     last = segs[-1]
     if not grave and not any(s["scene"] == "question" for s in segs) and last["text"].strip().endswith("?"):
         last["scene"], last["big"] = "question", last.get("big") or last["text"]

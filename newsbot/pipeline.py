@@ -87,7 +87,8 @@ def catchup(cfg, db, max_items=2, hours=8):
         if done >= max_items:
             break
         missing = [p for p in ready if not db.already_posted(row["id"], p)
-                   and not (p == "youtube" and db.youtube_room(cfg) <= 0)]
+                   and not (p == "youtube" and db.youtube_room(cfg) <= 0)
+                   and not (p == "instagram" and not db.instagram_ok(cfg, row["score"]))]
         meta = json.loads(row["meta"] or "{}")
         if not missing or "script" not in meta or meta.get("catchup", 0) >= 3:
             continue

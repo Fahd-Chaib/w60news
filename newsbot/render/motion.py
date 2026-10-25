@@ -61,7 +61,7 @@ class MotionRenderer(BaseRenderer):
             f = font("Bold", int(44 * u))
             lab = "TOP STORY"
             lw, lh = text_size(f, lab)
-            a = ease_out(k / 0.3)
+            a = 1.0
             x = W / 2 - lw / 2 - 24 * u
             y = cy - H * 0.17
             d.rectangle((x, y, x + (lw + 48 * u) * a, y + 70 * u), fill=self.c_primary)
@@ -69,9 +69,10 @@ class MotionRenderer(BaseRenderer):
                 d.text((x + 24 * u, y + 8 * u), lab, font=f, fill=(255, 255, 255))
 
         layer = self.big_layer(i)
-        pop = ease_out_back(k / 0.38)
-        alpha = clamp(k / 0.2) * (1 - clamp((t - end + 0.1) / 0.15))
-        drift = (1 - ease_out(k / 0.5)) * 50 * u
+        ka = k + (0.6 if i == self.first_seg else 0)  # hook: fully visible at frame 0
+        pop = ease_out_back(ka / 0.38)
+        alpha = clamp(ka / 0.2) * (1 - clamp((t - end + 0.1) / 0.15))
+        drift = (1 - ease_out(ka / 0.5)) * 50 * u
         paste_scaled(img, layer, W / 2, cy + drift, 0.7 + 0.3 * pop, alpha)
         # trait d'accent sous le mot-choc
         bar = ease_out((k - 0.15) / 0.35) * W * 0.25
