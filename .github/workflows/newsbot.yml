@@ -9,7 +9,7 @@ on:
       mode:
         description: "run = publish · preview = make videos without publishing · demo = test render"
         type: choice
-        options: [run, preview, demo]
+        options: [run, preview, demo, stats]
         default: preview
 
 permissions:
@@ -75,7 +75,7 @@ jobs:
 
       - name: Save bot memory
         # preview/demo runs never touch the memory, so they can't block real stories
-        if: always() && (github.event_name == 'schedule' || github.event.inputs.mode == 'run')
+        if: always() && (github.event_name == 'schedule' || github.event.inputs.mode == 'run' || github.event.inputs.mode == 'stats')
         run: bash deploy/state.sh push
 
       - name: Keep today's videos for 3 days (Actions → this run → Artifacts)

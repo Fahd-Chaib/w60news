@@ -21,7 +21,7 @@ from .config import DATA
 
 def main(argv=None):
     p = argparse.ArgumentParser(prog="newsbot")
-    p.add_argument("command", choices=["run", "recap", "demo", "preview", "auth", "status", "keygen"])
+    p.add_argument("command", choices=["run", "recap", "demo", "preview", "auth", "status", "keygen", "stats"])
     p.add_argument("target", nargs="?")
     p.add_argument("--config")
     args = p.parse_args(argv)
@@ -59,6 +59,9 @@ def main(argv=None):
             sys.exit("Usage: python -m newsbot auth youtube|tiktok "
                      "(Instagram: put the token in INSTAGRAM_ACCESS_TOKEN, see README)")
         authorize()
+    elif args.command == "stats":
+        from .stats import collect
+        collect(cfg)
     elif args.command == "keygen":
         from .vault import keygen
         print("Add this as the GitHub secret STATE_KEY:\n" + keygen())
