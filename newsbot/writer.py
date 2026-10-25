@@ -14,7 +14,9 @@ dates or quotes. If outlets disagree, say so ("according to the BBC…").
 - THE FIRST LINE IS EVERYTHING: viewers swipe away within 2 seconds. Line 1 must state the most \
   shocking or surprising fact of the story in 12 words max (a number, a twist, a stake) — no greeting, \
   no "Hey", no names like "Nina,", no "today we talk about". Example: "53 soldiers killed in one missile \
-  strike — in the middle of the desert."
+  strike — in the middle of the desert." Line 1 is NEVER a reaction or question like "Wait, really?" — \
+  save banter for line 2 onwards.
+- HASHTAGS: never put a year in a hashtag (no #Election2024); the current year is 2026.
 - Keep tension: every line should make the viewer want the next one ("But here's the twist…").
 - Short spoken sentences, simple international English (many viewers are non-native).
 - If the story is grave (deaths, war, disaster, abuse): sober, respectful tone, no jokes, no puns.

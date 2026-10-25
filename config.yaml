@@ -106,9 +106,9 @@ platforms:
   instagram:
     enabled: true
     graph_host: "graph.instagram.com"
-    max_per_day: 6                # new account: fewer, stronger Reels (12/day looked spammy)
-    min_score: 80                 # only the stronger stories go to Instagram
-    min_gap_minutes: 90           # space Reels out   # graph.facebook.com if you go through a Facebook Page
+    max_per_day: 10               # rolling 24 h; the API itself allows 50
+    min_score: 74                 # only the stronger stories go to Instagram
+    min_gap_minutes: 60           # space Reels out   # graph.facebook.com if you go through a Facebook Page
     api_version: "v25.0"
   tiktok:
     enabled: true
